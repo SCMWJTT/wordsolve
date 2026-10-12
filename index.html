@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1b2a33">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<title>WordSolve</title>
+<style>
+  :root {
+    --bg: #1b2a33;
+    --panel: #243845;
+    --line: #35505f;
+    --text: #e9eef1;
+    --muted: #93a8b3;
+    --tile: #f0d9a8;
+    --tile-edge: #b98f45;
+    --tile-ink: #1b2a33;
+    --accent: #3fb6a8;
+    --bad: #ff8a7a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+  button, input, select { font: inherit; color: inherit; }
+  button { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; cursor: pointer; }
+  button:active { background: var(--line); }
+  button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type=text], input[type=number], select { background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px; width: 100%; }
+  main, section { padding: 14px; max-width: 640px; margin: 0 auto; }
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .row > input[type=text] { flex: 1; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 12px; line-height: 1.4; }
+
+  #tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 84px; padding: 10px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tile { width: 44px; height: 48px; padding: 0; border-radius: 6px; border: none;
+    background: var(--tile); color: var(--tile-ink); font-size: 26px; font-weight: 700;
+    box-shadow: 0 3px 0 var(--tile-edge); }
+  .tile.blank { background: #dfe7ea; box-shadow: 0 3px 0 #8fa3ad; color: #51666f; }
+  .tile:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--tile-edge); }
+  .pos { width: 44px !important; padding: 6px 2px !important; text-align: center; font-size: 15px; }
+  .empty { color: var(--muted); align-self: center; padding: 0 6px; }
+  .counts { color: var(--muted); font-size: 13px; margin: 8px 0 12px; }
+
+  .lens { display: flex; gap: 10px; margin-bottom: 12px; }
+  .lens label { flex: 1; font-size: 13px; color: var(--muted); }
+  .lens input { margin-top: 4px; color: var(--text); font-size: 16px; }
+
+  .big { width: 100%; background: var(--accent); color: #0e1d22; border: none; font-weight: 700;
+    font-size: 17px; padding: 14px; }
+  .big:active { background: #2f958a; }
+  #status { margin: 12px 0; font-size: 14px; line-height: 1.4; }
+  #status.ok { color: var(--accent); }
+  #status.err { color: var(--bad); }
+  #dictInfo { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; }
+  summary { padding: 12px 14px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; }
+  summary span { color: var(--muted); font-weight: 400; }
+  .words { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
+  .words span { background: var(--tile); color: var(--tile-ink); border-radius: 5px; padding: 4px 8px;
+    font-weight: 600; font-size: 15px; letter-spacing: .5px; }
+
+  .field { margin-bottom: 14px; }
+  .field label.t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .btnrow { display: flex; gap: 8px; margin-bottom: 14px; }
+  .btnrow > * { flex: 1; text-align: center; }
+  label.filebtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px 14px; cursor: pointer; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>WordSolve</h1>
+  <button id="gear" aria-label="Settings">Settings</button>
+</header>
+
+<main id="mainView">
+  <div id="dictInfo"></div>
+
+  <div class="row">
+    <input id="lettersIn" type="text" autocapitalize="characters" autocomplete="off"
+           autocorrect="off" spellcheck="false" placeholder="Type your letters (? = blank)">
+    <button id="bsBtn" aria-label="Remove last tile">Back</button>
+    <button id="clrBtn">Clear</button>
+  </div>
+
+  <div id="tiles"></div>
+  <div class="counts" id="counts"></div>
+  <div class="hint">Tap a tile to remove it. The number under a tile fixes that letter to that position in the word (1 = first letter). Leave it blank to let the letter go anywhere.</div>
+
+  <div class="lens">
+    <label>Shortest word
+      <input id="minLen" type="number" inputmode="numeric" min="1">
+    </label>
+    <label>Longest word
+      <input id="maxLen" type="number" inputmode="numeric" min="1">
+    </label>
+  </div>
+
+  <button id="findBtn" class="big">Find words</button>
+  <div id="status"></div>
+  <div id="results"></div>
+</main>
+
+<section id="settingsView" hidden>
+  <div class="field">
+    <label class="t" for="dictSel">Dictionary</label>
+    <select id="dictSel"></select>
+  </div>
+  <div class="btnrow">
+    <label class="filebtn" for="fileIn">Load dictionary file</label>
+    <button id="delBtn">Delete selected</button>
+  </div>
+  <input id="fileIn" type="file" hidden>
+  <div class="hint">Load a word list .txt file from your phone (one word per line). It is stored inside the app on this phone. Loading a file with the same name replaces that dictionary.</div>
+
+  <div class="field">
+    <label class="t" for="maxWord">Max word size (also the max number of tiles)</label>
+    <input id="maxWord" type="number" inputmode="numeric" min="2" max="30">
+  </div>
+  <div class="field">
+    <label class="t" for="maxBlanks">Max blanks (wildcards)</label>
+    <input id="maxBlanks" type="number" inputmode="numeric" min="0" max="10">
+  </div>
+
+  <div id="setStatus"></div>
+  <button id="doneBtn" class="big">Done</button>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+
+// ---------- saved settings ----------
+let S = {};
+try { S = JSON.parse(localStorage.getItem('ws') || '{}'); } catch (e) { S = {}; }
+S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15 }, S);
+function saveS() { localStorage.setItem('ws', JSON.stringify(S)); }
+
+let tiles = [];      // each: { l: 'A'..'Z' or '?', p: 0 or position number }
+let words = [];      // words of the active dictionary
+let dictName = '';
+
+// ---------- status messages ----------
+function say(el, text, cls) { el.textContent = text; el.className = cls || ''; }
+const mainMsg = (t, c) => say($('status'), t, c);
+const setMsg = (t, c) => say($('setStatus'), t, c);
+
+// ---------- IndexedDB (dictionary storage) ----------
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('wordsolve', 1);
+    r.onupgradeneeded = () => {
+      r.result.createObjectStore('meta', { keyPath: 'name' });
+      r.result.createObjectStore('text');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(stores, mode, fn) {
+  return openDB().then(d => new Promise((res, rej) => {
+    const t = d.transaction(stores, mode);
+    const req = fn(t);
+    t.oncomplete = () => res(req ? req.result : undefined);
+    t.onerror = () => rej(t.error);
+    t.onabort = () => rej(t.error);
+  }));
+}
+const listDicts = () => tx(['meta'], 'readonly', t => t.objectStore('meta').getAll());
+const getText = name => tx(['text'], 'readonly', t => t.objectStore('text').get(name));
+const saveDict = (name, text, count) => tx(['meta', 'text'], 'readwrite', t => {
+  t.objectStore('meta').put({ name, count });
+  t.objectStore('text').put(text, name);
+});
+const delDict = name => tx(['meta', 'text'], 'readwrite', t => {
+  t.objectStore('meta').delete(name);
+  t.objectStore('text').delete(name);
+});
+
+// ---------- dictionary handling ----------
+async function refreshDicts() {
+  const list = await listDicts();
+  const sel = $('dictSel');
+  sel.innerHTML = '';
+  list.sort((a, b) => a.name.localeCompare(b.name));
+  list.forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.name;
+    o.textContent = d.name + ' (' + d.count.toLocaleString() + ' words)';
+    sel.appendChild(o);
+  });
+  if (!list.length) {
+    words = []; dictName = ''; S.dict = '';
+    $('dictInfo').textContent = 'No dictionary loaded. Open Settings and load a word list file.';
+    return;
+  }
+  if (!list.some(d => d.name === S.dict)) S.dict = list[0].name;
+  sel.value = S.dict;
+  await useDict(S.dict, list.find(d => d.name === S.dict).count);
+  saveS();
+}
+async function useDict(name, count) {
+  const text = await getText(name);
+  words = text ? text.split('\n') : [];
+  dictName = name;
+  $('dictInfo').textContent = 'Dictionary: ' + name + ' (' + (count || words.length).toLocaleString() + ' words)';
+}
+
+$('dictSel').onchange = async () => {
+  S.dict = $('dictSel').value; saveS();
+  await refreshDicts();
+  setMsg('Now using "' + S.dict + '" (' + words.length.toLocaleString() + ' words)', 'ok');
+};
+
+$('fileIn').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  let name = prompt('Name for this dictionary (for example OSPD7):', f.name.replace(/\.[^.]*$/, ''));
+  if (!name || !name.trim()) { setMsg('Load cancelled. Nothing was saved.', 'err'); return; }
+  name = name.trim();
+  setMsg('Reading ' + f.name + ' ...');
+  try {
+    const raw = await f.text();
+    const lines = raw.split(/\r?\n/);
+    const set = new Set();
+    let skipped = 0;
+    for (const line of lines) {
+      const m = /^[A-Za-z]+/.exec(line.trim());
+      if (m) set.add(m[0].toUpperCase()); else if (line.trim()) skipped++;
+    }
+    if (set.size < 100) {
+      setMsg('Only ' + set.size + ' words found in that file, so it was not saved. Is it a word list with one word per line?', 'err');
+      return;
+    }
+    const arr = Array.from(set).sort();
+    await saveDict(name, arr.join('\n'), arr.length);
+    S.dict = name; saveS();
+    await refreshDicts();
+    setMsg('Loaded "' + name + '": ' + arr.length.toLocaleString() + ' words saved, ' + skipped + ' lines skipped.', 'ok');
+  } catch (err) {
+    setMsg('Could not load the file: ' + err.message, 'err');
+  }
+};
+
+$('delBtn').onclick = async () => {
+  const name = $('dictSel').value;
+  if (!name) { setMsg('There is no dictionary to delete.', 'err'); return; }
+  if (!confirm('Delete dictionary "' + name + '" from this phone?')) return;
+  await delDict(name);
+  S.dict = '';
+  await refreshDicts();
+  setMsg('Deleted "' + name + '".', 'ok');
+};
+
+// ---------- tiles ----------
+function blankCount() { return tiles.filter(t => t.l === '?').length; }
+
+function renderTiles() {
+  const el = $('tiles');
+  el.innerHTML = '';
+  if (!tiles.length) {
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = 'Your tiles will appear here';
+    el.appendChild(e);
+  }
+  tiles.forEach((t, i) => {
+    const col = document.createElement('div');
+    col.className = 'col';
+    const b = document.createElement('button');
+    b.className = 'tile' + (t.l === '?' ? ' blank' : '');
+    b.textContent = t.l;
+    b.setAttribute('aria-label', 'Remove tile ' + t.l);
+    b.onclick = () => { tiles.splice(i, 1); renderTiles(); };
+    const p = document.createElement('input');
+    p.type = 'number'; p.inputMode = 'numeric'; p.min = 1; p.max = S.maxWord;
+    p.className = 'pos'; p.placeholder = '-';
+    p.setAttribute('aria-label', 'Position for tile ' + t.l);
+    if (t.p) p.value = t.p;
+    p.oninput = () => { const n = parseInt(p.value, 10); t.p = n > 0 ? n : 0; };
+    col.appendChild(b); col.appendChild(p);
+    el.appendChild(col);
+  });
+  $('counts').textContent = tiles.length + ' of ' + S.maxWord + ' tiles, ' + blankCount() + ' of ' + S.maxBlanks + ' blanks';
+}
+
+function addLetter(ch) {
+  if (tiles.length >= S.maxWord) { mainMsg('Tile limit reached (' + S.maxWord + '). Raise it in Settings.', 'err'); return; }
+  if (ch === '?' && blankCount() >= S.maxBlanks) { mainMsg('Blank limit reached (' + S.maxBlanks + '). Raise it in Settings.', 'err'); return; }
+  tiles.push({ l: ch, p: 0 });
+}
+
+$('lettersIn').oninput = e => {
+  const v = e.target.value.toUpperCase();
+  e.target.value = '';
+  mainMsg('');
+  for (const c of v) {
+    if (/[A-Z]/.test(c)) addLetter(c);
+    else if (/[?*_.]/.test(c)) addLetter('?');
+  }
+  renderTiles();
+};
+$('bsBtn').onclick = () => { tiles.pop(); renderTiles(); };
+$('clrBtn').onclick = () => { tiles = []; renderTiles(); $('results').innerHTML = ''; mainMsg('Tiles cleared.', 'ok'); };
+
+// ---------- length range ----------
+function loadLens() {
+  $('minLen').value = S.minLen;
+  $('maxLen').value = S.maxLen;
+}
+$('minLen').onchange = () => { S.minLen = parseInt($('minLen').value, 10) || 1; saveS(); };
+$('maxLen').onchange = () => { S.maxLen = parseInt($('maxLen').value, 10) || S.maxWord; saveS(); };
+
+// ---------- search ----------
+$('findBtn').onclick = () => {
+  const out = $('results');
+  out.innerHTML = '';
+  if (!words.length) { mainMsg('No dictionary loaded. Open Settings and load a word list file.', 'err'); return; }
+  if (!tiles.length) { mainMsg('Enter some letters first.', 'err'); return; }
+
+  let min = parseInt($('minLen').value, 10);
+  let max = parseInt($('maxLen').value, 10);
+  if (!(min >= 1)) min = 1;
+  if (!(max >= 1)) max = S.maxWord;
+  if (max > S.maxWord) max = S.maxWord;
+  if (min > max) { mainMsg('Shortest word (' + min + ') is longer than longest word (' + max + ').', 'err'); return; }
+  $('minLen').value = min; $('maxLen').value = max;
+  S.minLen = min; S.maxLen = max; saveS();
+
+  // positioned tiles
+  const posAt = new Int16Array(64).fill(-2);   // -2 free, -1 any letter (blank), 0..25 fixed letter
+  const counts = new Int8Array(26);
+  let freeBlanks = 0, maxPos = 0;
+  for (const t of tiles) {
+    if (t.p) {
+      if (t.p > max) { mainMsg('Tile ' + t.l + ' is fixed to position ' + t.p + ', which is beyond the longest word (' + max + ').', 'err'); return; }
+      if (posAt[t.p - 1] !== -2) { mainMsg('Two tiles are fixed to position ' + t.p + '. Change one of them.', 'err'); return; }
+      posAt[t.p - 1] = t.l === '?' ? -1 : t.l.charCodeAt(0) - 65;
+      if (t.p > maxPos) maxPos = t.p;
+    } else if (t.l === '?') freeBlanks++;
+    else counts[t.l.charCodeAt(0) - 65]++;
+  }
+  const effMin = Math.max(min, maxPos);
+
+  const t0 = performance.now();
+  const tmp = new Int8Array(26);
+  const buckets = [];
+  let total = 0;
+  for (let w = 0; w < words.length; w++) {
+    const word = words[w];
+    const L = word.length;
+    if (L < effMin || L > max) continue;
+    let ok = true;
+    tmp.set(counts);
+    let b = 0;
+    for (let i = 0; i < L; i++) {
+      const c = word.charCodeAt(i) - 65;
+      const p = posAt[i];
+      if (p !== -2) {
+        if (p >= 0 && p !== c) { ok = false; break; }
+        continue;
+      }
+      if (tmp[c] > 0) tmp[c]--;
+      else if (++b > freeBlanks) { ok = false; break; }
+    }
+    if (ok) {
+      (buckets[L] || (buckets[L] = [])).push(word);
+      total++;
+    }
+  }
+  const ms = Math.round(performance.now() - t0);
+
+  let html = '';
+  for (let L = max; L >= min; L--) {
+    const a = buckets[L];
+    if (!a || !a.length) continue;
+    html += '<details open><summary>' + L + ' letters <span>' + a.length + ' words</span></summary><div class="words">' +
+      a.map(x => '<span>' + x + '</span>').join('') + '</div></details>';
+  }
+  out.innerHTML = html;
+  if (total) mainMsg('Found ' + total.toLocaleString() + ' words of ' + min + ' to ' + max + ' letters in ' + ms + ' ms (' + dictName + ').', 'ok');
+  else mainMsg('No words found for ' + min + ' to ' + max + ' letters in ' + dictName + '.', 'err');
+};
+
+// ---------- settings screen ----------
+$('gear').onclick = () => { $('mainView').hidden = true; $('settingsView').hidden = false;
+  $('maxWord').value = S.maxWord; $('maxBlanks').value = S.maxBlanks; setMsg(''); };
+$('doneBtn').onclick = () => { $('settingsView').hidden = true; $('mainView').hidden = false; renderTiles(); };
+
+$('maxWord').onchange = () => {
+  let n = parseInt($('maxWord').value, 10);
+  if (!(n >= 2)) n = 2;
+  if (n > 30) n = 30;
+  $('maxWord').value = n;
+  S.maxWord = n;
+  let trimmed = 0;
+  while (tiles.length > n) { tiles.pop(); trimmed++; }
+  if (S.maxLen > n) { S.maxLen = n; $('maxLen').value = n; }
+  if (S.minLen > n) { S.minLen = n; $('minLen').value = n; }
+  saveS();
+  setMsg('Max word size set to ' + n + (trimmed ? ' (' + trimmed + ' tiles removed)' : '') + '.', 'ok');
+};
+$('maxBlanks').onchange = () => {
+  let n = parseInt($('maxBlanks').value, 10);
+  if (!(n >= 0)) n = 0;
+  if (n > 10) n = 10;
+  $('maxBlanks').value = n;
+  S.maxBlanks = n;
+  let removed = 0;
+  while (blankCount() > n) {
+    const idx = tiles.map(t => t.l).lastIndexOf('?');
+    tiles.splice(idx, 1); removed++;
+  }
+  saveS();
+  setMsg('Max blanks set to ' + n + (removed ? ' (' + removed + ' blank tiles removed)' : '') + '.', 'ok');
+};
+
+// ---------- start ----------
+loadLens();
+renderTiles();
+refreshDicts().catch(err => { $('dictInfo').textContent = 'Storage problem: ' + err.message; });
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
