@@ -19,7 +19,16 @@
     --tile-ink: #1b2a33;
     --accent: #3fb6a8;
     --bad: #ff8a7a;
+    --accent-ink: #0e1d22;
   }
+  [data-theme="midnight"] { --bg:#0f1226; --panel:#1a1f3d; --line:#2e3566; --text:#e8eaff; --muted:#9aa2d6;
+    --tile:#e9e3ff; --tile-edge:#8d82c9; --tile-ink:#14163a; --accent:#8b7cff; --accent-ink:#0f1226; }
+  [data-theme="forest"] { --bg:#14261c; --panel:#1d3828; --line:#2f5a40; --text:#eaf3ec; --muted:#9bb8a5;
+    --tile:#f3e7c4; --tile-edge:#b9a25a; --tile-ink:#14261c; --accent:#e0b84a; --accent-ink:#14261c; }
+  [data-theme="berry"] { --bg:#2a1424; --panel:#3d1f35; --line:#6a3a5c; --text:#fbeaf3; --muted:#d1a3bd;
+    --tile:#ffe3d0; --tile-edge:#c98a6b; --tile-ink:#2a1424; --accent:#ff8fb1; --accent-ink:#2a1424; }
+  [data-theme="light"] { --bg:#eef2f4; --panel:#ffffff; --line:#c9d5db; --text:#1b2a33; --muted:#5c717c;
+    --tile:#f0d9a8; --tile-edge:#b98f45; --tile-ink:#1b2a33; --accent:#1f8f84; --accent-ink:#ffffff; --bad:#c0392b; }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
@@ -54,9 +63,9 @@
   .lens label { flex: 1; font-size: 13px; color: var(--muted); }
   .lens input { margin-top: 4px; color: var(--text); font-size: 16px; }
 
-  .big { width: 100%; background: var(--accent); color: #0e1d22; border: none; font-weight: 700;
+  .big { width: 100%; background: var(--accent); color: var(--accent-ink); border: none; font-weight: 700;
     font-size: 17px; padding: 14px; }
-  .big:active { background: #2f958a; }
+  .big:active { filter: brightness(.85); }
   #status { margin: 12px 0; font-size: 14px; line-height: 1.4; }
   #status.ok { color: var(--accent); }
   #status.err { color: var(--bad); }
@@ -90,7 +99,7 @@
 
   <div class="row">
     <input id="lettersIn" type="text" autocapitalize="characters" autocomplete="off"
-           autocorrect="off" spellcheck="false" placeholder="Type your letters (? = blank)">
+           autocorrect="off" spellcheck="false" placeholder="Type letters (space or ? = blank)">
     <button id="bsBtn" aria-label="Remove last tile">Back</button>
     <button id="clrBtn">Clear</button>
   </div>
@@ -133,6 +142,16 @@
     <label class="t" for="maxBlanks">Max blanks (wildcards)</label>
     <input id="maxBlanks" type="number" inputmode="numeric" min="0" max="10">
   </div>
+  <div class="field">
+    <label class="t" for="themeSel">Theme</label>
+    <select id="themeSel">
+      <option value="slate">Slate</option>
+      <option value="midnight">Midnight</option>
+      <option value="forest">Forest</option>
+      <option value="berry">Berry</option>
+      <option value="light">Light</option>
+    </select>
+  </div>
 
   <div id="setStatus"></div>
   <button id="doneBtn" class="big">Done</button>
@@ -144,7 +163,7 @@ const $ = id => document.getElementById(id);
 // ---------- saved settings ----------
 let S = {};
 try { S = JSON.parse(localStorage.getItem('ws') || '{}'); } catch (e) { S = {}; }
-S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15 }, S);
+S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15, theme: 'slate' }, S);
 function saveS() { localStorage.setItem('ws', JSON.stringify(S)); }
 
 let tiles = [];      // each: { l: 'A'..'Z' or '?', p: 0 or position number }
@@ -308,7 +327,7 @@ $('lettersIn').oninput = e => {
   mainMsg('');
   for (const c of v) {
     if (/[A-Z]/.test(c)) addLetter(c);
-    else if (/[?*_.]/.test(c)) addLetter('?');
+    else if (/[?*_.\s]/.test(c)) addLetter('?');
   }
   renderTiles();
 };
@@ -427,7 +446,20 @@ $('maxBlanks').onchange = () => {
   setMsg('Max blanks set to ' + n + (removed ? ' (' + removed + ' blank tiles removed)' : '') + '.', 'ok');
 };
 
+// ---------- theme ----------
+function applyTheme(name) {
+  document.documentElement.setAttribute('data-theme', name);
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  document.querySelector('meta[name=theme-color]').setAttribute('content', bg);
+}
+$('themeSel').onchange = () => {
+  S.theme = $('themeSel').value; saveS(); applyTheme(S.theme);
+  setMsg('Theme changed to ' + S.theme + '.', 'ok');
+};
+
 // ---------- start ----------
+$('themeSel').value = S.theme;
+applyTheme(S.theme);
 loadLens();
 renderTiles();
 refreshDicts().catch(err => { $('dictInfo').textContent = 'Storage problem: ' + err.message; });

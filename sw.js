@@ -18,6 +18,7 @@ self.addEventListener('activate', e => {
 // Network first (so updates arrive when online), cache as the offline fallback
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then(res => {
