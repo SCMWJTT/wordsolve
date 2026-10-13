@@ -20,6 +20,7 @@
     --accent: #3fb6a8;
     --bad: #ff8a7a;
     --accent-ink: #0e1d22;
+    --ts: 1;
   }
   [data-theme="midnight"] { --bg:#0f1226; --panel:#1a1f3d; --line:#2e3566; --text:#e8eaff; --muted:#9aa2d6;
     --tile:#e9e3ff; --tile-edge:#8d82c9; --tile-ink:#14163a; --accent:#8b7cff; --accent-ink:#0f1226; }
@@ -33,43 +34,47 @@
   html, body { margin: 0; background: var(--bg); color: var(--text);
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 14px; border-bottom: 1px solid var(--line); }
-  h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+    padding: 8px 14px; border-bottom: 1px solid var(--line); }
+  h1 { margin: 0; font-size: 18px; letter-spacing: .5px; }
+  #dictInfo { color: var(--muted); font-size: 12px; margin-top: 2px; }
   button, input, select { font: inherit; color: inherit; }
   button { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
     padding: 10px 14px; cursor: pointer; }
   button:active { background: var(--line); }
   button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  input[type=text], input[type=number], select { background: var(--panel); border: 1px solid var(--line);
+  input[type=number], select { background: var(--panel); border: 1px solid var(--line);
     border-radius: 8px; padding: 10px; width: 100%; }
-  main, section { padding: 14px; max-width: 640px; margin: 0 auto; }
-  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
-  .row > input[type=text] { flex: 1; }
-  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 12px; line-height: 1.4; }
+  main, section { padding: 10px 14px; max-width: 640px; margin: 0 auto; }
 
-  #tiles { display: flex; flex-wrap: wrap; gap: 6px; min-height: 84px; padding: 10px;
-    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+  /* letters bar */
+  #bar { position: relative; background: var(--panel); border: 2px solid var(--line); border-radius: 12px;
+    padding: 10px; min-height: calc(48px * var(--ts) + 58px); cursor: text; }
+  #bar.focus { border-color: var(--accent); }
+  #ghost { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0;
+    pointer-events: none; font-size: 16px; border: none; background: transparent; }
+  #tiles { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
   .col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .tile { width: 44px; height: 48px; padding: 0; border-radius: 6px; border: none;
-    background: var(--tile); color: var(--tile-ink); font-size: 26px; font-weight: 700;
+  .tile { width: calc(44px * var(--ts)); height: calc(48px * var(--ts)); padding: 0; border-radius: 6px; border: none;
+    background: var(--tile); color: var(--tile-ink); font-size: calc(26px * var(--ts)); font-weight: 700;
     box-shadow: 0 3px 0 var(--tile-edge); }
   .tile.blank { background: #dfe7ea; box-shadow: 0 3px 0 #8fa3ad; color: #51666f; }
-  .tile:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--tile-edge); }
-  .pos { width: 44px !important; padding: 6px 2px !important; text-align: center; font-size: 15px; }
-  .empty { color: var(--muted); align-self: center; padding: 0 6px; }
-  .counts { color: var(--muted); font-size: 13px; margin: 8px 0 12px; }
+  .pos { width: calc(44px * var(--ts)) !important; padding: 6px 2px !important; text-align: center;
+    font-size: calc(15px * var(--ts)); }
+  .caret { display: none; width: 3px; height: calc(48px * var(--ts)); background: var(--accent);
+    border-radius: 2px; animation: blink 1s steps(1) infinite; flex: none; }
+  #bar.focus .caret { display: block; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .ph { color: var(--muted); align-self: center; font-size: 15px; padding: 10px 4px; }
 
-  .lens { display: flex; gap: 10px; margin-bottom: 12px; }
-  .lens label { flex: 1; font-size: 13px; color: var(--muted); }
-  .lens input { margin-top: 4px; color: var(--text); font-size: 16px; }
-
-  .big { width: 100%; background: var(--accent); color: var(--accent-ink); border: none; font-weight: 700;
-    font-size: 17px; padding: 14px; }
+  .actions { display: flex; gap: 8px; margin: 10px 0 6px; }
+  .big { background: var(--accent); color: var(--accent-ink); border: none; font-weight: 700;
+    font-size: 17px; padding: 14px; flex: 3; }
   .big:active { filter: brightness(.85); }
-  #status { margin: 12px 0; font-size: 14px; line-height: 1.4; }
-  #status.ok { color: var(--accent); }
-  #status.err { color: var(--bad); }
-  #dictInfo { color: var(--muted); font-size: 13px; margin-bottom: 10px; }
+  #clrBtn { flex: 1; font-size: 16px; }
+  #status { margin: 6px 0 10px; font-size: 13px; line-height: 1.4; }
+  #status.ok, #setStatus.ok { color: var(--accent); }
+  #status.err, #setStatus.err { color: var(--bad); }
+  #setStatus { margin: 8px 0 12px; font-size: 14px; line-height: 1.4; }
 
   details { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 10px; }
   summary { padding: 12px 14px; font-weight: 700; cursor: pointer; display: flex; justify-content: space-between; }
@@ -80,44 +85,38 @@
 
   .field { margin-bottom: 14px; }
   .field label.t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  .btnrow { display: flex; gap: 8px; margin-bottom: 14px; }
+  .pair { display: flex; gap: 10px; }
+  .pair .field { flex: 1; }
+  .btnrow { display: flex; gap: 8px; margin-bottom: 8px; }
   .btnrow > * { flex: 1; text-align: center; }
   label.filebtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
     padding: 10px 14px; cursor: pointer; }
+  .help { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 6px 0 14px; }
+  .big.full { flex: none; width: 100%; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>WordSolve</h1>
+  <div>
+    <h1>WordSolve</h1>
+    <div id="dictInfo"></div>
+  </div>
   <button id="gear" aria-label="Settings">Settings</button>
 </header>
 
 <main id="mainView">
-  <div id="dictInfo"></div>
+  <div id="bar">
+    <input id="ghost" type="text" autocapitalize="characters" autocomplete="off"
+           autocorrect="off" spellcheck="false" aria-label="Letters">
+    <div id="tiles"></div>
+  </div>
 
-  <div class="row">
-    <input id="lettersIn" type="text" autocapitalize="characters" autocomplete="off"
-           autocorrect="off" spellcheck="false" placeholder="Type letters (space or ? = blank)">
-    <button id="bsBtn" aria-label="Remove last tile">Back</button>
+  <div class="actions">
+    <button id="findBtn" class="big">Find words</button>
     <button id="clrBtn">Clear</button>
   </div>
-
-  <div id="tiles"></div>
-  <div class="counts" id="counts"></div>
-  <div class="hint">Tap a tile to remove it. The number under a tile fixes that letter to that position in the word (1 = first letter). Leave it blank to let the letter go anywhere.</div>
-
-  <div class="lens">
-    <label>Shortest word
-      <input id="minLen" type="number" inputmode="numeric" min="1">
-    </label>
-    <label>Longest word
-      <input id="maxLen" type="number" inputmode="numeric" min="1">
-    </label>
-  </div>
-
-  <button id="findBtn" class="big">Find words</button>
   <div id="status"></div>
   <div id="results"></div>
 </main>
@@ -132,16 +131,35 @@
     <button id="delBtn">Delete selected</button>
   </div>
   <input id="fileIn" type="file" hidden>
-  <div class="hint">Load a word list .txt file from your phone (one word per line). It is stored inside the app on this phone. Loading a file with the same name replaces that dictionary.</div>
+  <div class="help">Load a word list .txt file from your phone (one word per line). It is stored inside the app on this phone. Loading a file with the same name replaces that dictionary.</div>
+
+  <div class="pair">
+    <div class="field">
+      <label class="t" for="minLen">Shortest word</label>
+      <input id="minLen" type="number" inputmode="numeric" min="1">
+    </div>
+    <div class="field">
+      <label class="t" for="maxLen">Longest word</label>
+      <input id="maxLen" type="number" inputmode="numeric" min="1">
+    </div>
+  </div>
+
+  <div class="pair">
+    <div class="field">
+      <label class="t" for="maxWord">Max word size (and max tiles)</label>
+      <input id="maxWord" type="number" inputmode="numeric" min="2" max="30">
+    </div>
+    <div class="field">
+      <label class="t" for="maxBlanks">Max blanks</label>
+      <input id="maxBlanks" type="number" inputmode="numeric" min="0" max="10">
+    </div>
+  </div>
 
   <div class="field">
-    <label class="t" for="maxWord">Max word size (also the max number of tiles)</label>
-    <input id="maxWord" type="number" inputmode="numeric" min="2" max="30">
+    <label class="t" for="tileSize">Tile size (10 = standard, each step is 5% bigger or smaller)</label>
+    <input id="tileSize" type="number" inputmode="numeric" min="1" max="30">
   </div>
-  <div class="field">
-    <label class="t" for="maxBlanks">Max blanks (wildcards)</label>
-    <input id="maxBlanks" type="number" inputmode="numeric" min="0" max="10">
-  </div>
+
   <div class="field">
     <label class="t" for="themeSel">Theme</label>
     <select id="themeSel">
@@ -154,7 +172,15 @@
   </div>
 
   <div id="setStatus"></div>
-  <button id="doneBtn" class="big">Done</button>
+  <button id="doneBtn" class="big full">Done</button>
+
+  <div class="help">
+    <b>How to use</b><br>
+    Tap the letters bar and type your letters. Use the space bar for a blank. Backspace removes letters.
+    Tap a tile to put the cursor after it, so you can fix or add letters in the middle.
+    The number under a tile fixes that letter to that position in the word (1 = first letter). Leave it empty to let the letter go anywhere.
+    The Enter key runs the search.
+  </div>
 </section>
 
 <script>
@@ -163,10 +189,11 @@ const $ = id => document.getElementById(id);
 // ---------- saved settings ----------
 let S = {};
 try { S = JSON.parse(localStorage.getItem('ws') || '{}'); } catch (e) { S = {}; }
-S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15, theme: 'slate' }, S);
+S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15, theme: 'slate', tileSize: 10 }, S);
 function saveS() { localStorage.setItem('ws', JSON.stringify(S)); }
 
 let tiles = [];      // each: { l: 'A'..'Z' or '?', p: 0 or position number }
+let caret = 0;       // cursor position among the tiles
 let words = [];      // words of the active dictionary
 let dictName = '';
 
@@ -221,7 +248,7 @@ async function refreshDicts() {
   });
   if (!list.length) {
     words = []; dictName = ''; S.dict = '';
-    $('dictInfo').textContent = 'No dictionary loaded. Open Settings and load a word list file.';
+    $('dictInfo').textContent = 'No dictionary loaded. Open Settings to load one.';
     return;
   }
   if (!list.some(d => d.name === S.dict)) S.dict = list[0].name;
@@ -233,7 +260,7 @@ async function useDict(name, count) {
   const text = await getText(name);
   words = text ? text.split('\n') : [];
   dictName = name;
-  $('dictInfo').textContent = 'Dictionary: ' + name + ' (' + (count || words.length).toLocaleString() + ' words)';
+  $('dictInfo').textContent = name + ' (' + (count || words.length).toLocaleString() + ' words)';
 }
 
 $('dictSel').onchange = async () => {
@@ -283,26 +310,36 @@ $('delBtn').onclick = async () => {
   setMsg('Deleted "' + name + '".', 'ok');
 };
 
-// ---------- tiles ----------
+// ---------- letters bar ----------
+const inp = $('ghost');
+const bar = $('bar');
+let caretEl = null;
+
 function blankCount() { return tiles.filter(t => t.l === '?').length; }
+function syncInput() { inp.value = tiles.map(t => t.l).join(''); }
+
+function placeCaret() {
+  if (!caretEl) return;
+  const el = $('tiles');
+  const cols = el.querySelectorAll('.col');
+  if (cols[caret]) el.insertBefore(caretEl, cols[caret]);
+  else if (cols.length) cols[cols.length - 1].after(caretEl);
+  else el.prepend(caretEl);
+}
 
 function renderTiles() {
   const el = $('tiles');
   el.innerHTML = '';
-  if (!tiles.length) {
-    const e = document.createElement('div');
-    e.className = 'empty';
-    e.textContent = 'Your tiles will appear here';
-    el.appendChild(e);
-  }
+  caretEl = document.createElement('span');
+  caretEl.className = 'caret';
   tiles.forEach((t, i) => {
     const col = document.createElement('div');
     col.className = 'col';
     const b = document.createElement('button');
     b.className = 'tile' + (t.l === '?' ? ' blank' : '');
     b.textContent = t.l;
-    b.setAttribute('aria-label', 'Remove tile ' + t.l);
-    b.onclick = () => { tiles.splice(i, 1); renderTiles(); };
+    b.dataset.i = i;
+    b.setAttribute('aria-label', 'Tile ' + t.l);
     const p = document.createElement('input');
     p.type = 'number'; p.inputMode = 'numeric'; p.min = 1; p.max = S.maxWord;
     p.className = 'pos'; p.placeholder = '-';
@@ -312,51 +349,104 @@ function renderTiles() {
     col.appendChild(b); col.appendChild(p);
     el.appendChild(col);
   });
-  $('counts').textContent = tiles.length + ' of ' + S.maxWord + ' tiles, ' + blankCount() + ' of ' + S.maxBlanks + ' blanks';
-}
-
-function addLetter(ch) {
-  if (tiles.length >= S.maxWord) { mainMsg('Tile limit reached (' + S.maxWord + '). Raise it in Settings.', 'err'); return; }
-  if (ch === '?' && blankCount() >= S.maxBlanks) { mainMsg('Blank limit reached (' + S.maxBlanks + '). Raise it in Settings.', 'err'); return; }
-  tiles.push({ l: ch, p: 0 });
-}
-
-$('lettersIn').oninput = e => {
-  const v = e.target.value.toUpperCase();
-  e.target.value = '';
-  mainMsg('');
-  for (const c of v) {
-    if (/[A-Z]/.test(c)) addLetter(c);
-    else if (/[?*_.\s]/.test(c)) addLetter('?');
+  if (!tiles.length) {
+    const ph = document.createElement('div');
+    ph.className = 'ph';
+    ph.textContent = 'Tap here and type your letters (space = blank)';
+    el.appendChild(ph);
   }
-  renderTiles();
-};
-$('bsBtn').onclick = () => { tiles.pop(); renderTiles(); };
-$('clrBtn').onclick = () => { tiles = []; renderTiles(); $('results').innerHTML = ''; mainMsg('Tiles cleared.', 'ok'); };
-
-// ---------- length range ----------
-function loadLens() {
-  $('minLen').value = S.minLen;
-  $('maxLen').value = S.maxLen;
+  placeCaret();
 }
-$('minLen').onchange = () => { S.minLen = parseInt($('minLen').value, 10) || 1; saveS(); };
-$('maxLen').onchange = () => { S.maxLen = parseInt($('maxLen').value, 10) || S.maxWord; saveS(); };
+
+function refreshTiles() {
+  syncInput();
+  if (caret > tiles.length) caret = tiles.length;
+  renderTiles();
+}
+
+function focusAt(n) {
+  inp.focus();
+  setTimeout(() => { try { inp.setSelectionRange(n, n); } catch (e) {} caret = n; placeCaret(); }, 0);
+}
+
+bar.addEventListener('click', e => {
+  if (e.target.closest('.pos')) return;
+  const t = e.target.closest('.tile');
+  if (t) focusAt(parseInt(t.dataset.i, 10) + 1);
+  else focusAt(tiles.length);
+});
+inp.addEventListener('focus', () => bar.classList.add('focus'));
+inp.addEventListener('blur', () => bar.classList.remove('focus'));
+document.addEventListener('selectionchange', () => {
+  if (document.activeElement === inp) {
+    caret = Math.min(inp.selectionStart || 0, tiles.length);
+    placeCaret();
+  }
+});
+
+// keep position numbers with their letters when letters are inserted or removed
+function applyText(nu) {
+  const old = tiles.map(t => t.l).join('');
+  let k = 0;
+  while (k < old.length && k < nu.length && old[k] === nu[k]) k++;
+  let s = 0;
+  while (s < old.length - k && s < nu.length - k && old[old.length - 1 - s] === nu[nu.length - 1 - s]) s++;
+  const next = [];
+  for (let i = 0; i < k; i++) next.push(tiles[i]);
+  for (let i = k; i < nu.length - s; i++) next.push({ l: nu[i], p: 0 });
+  for (let i = old.length - s; i < old.length; i++) next.push(tiles[i]);
+  tiles = next;
+}
+
+inp.addEventListener('input', () => {
+  const raw = inp.value.toUpperCase();
+  const pos = inp.selectionStart || 0;
+  let out = '', blanks = 0, newCaret = 0, msg = '';
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    let ch = null;
+    if (/[A-Z]/.test(c)) ch = c;
+    else if (/[?*_.\s]/.test(c)) ch = '?';
+    if (ch !== null) {
+      if (out.length >= S.maxWord) msg = 'Tile limit reached (' + S.maxWord + '). Raise it in Settings.';
+      else if (ch === '?' && blanks >= S.maxBlanks) msg = 'Blank limit reached (' + S.maxBlanks + '). Raise it in Settings.';
+      else { out += ch; if (ch === '?') blanks++; }
+    }
+    if (i + 1 === pos) newCaret = out.length;
+  }
+  if (pos >= raw.length) newCaret = out.length;
+  applyText(out);
+  inp.value = out;
+  try { inp.setSelectionRange(newCaret, newCaret); } catch (e) {}
+  caret = newCaret;
+  renderTiles();
+  if (msg) mainMsg(msg, 'err');
+  else if ($('status').className === 'err') mainMsg('');
+});
+
+inp.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); $('findBtn').click(); }
+});
+
+$('clrBtn').onclick = () => {
+  tiles = []; caret = 0;
+  refreshTiles();
+  $('results').innerHTML = '';
+  mainMsg('Tiles cleared.', 'ok');
+};
 
 // ---------- search ----------
 $('findBtn').onclick = () => {
+  inp.blur();
   const out = $('results');
   out.innerHTML = '';
   if (!words.length) { mainMsg('No dictionary loaded. Open Settings and load a word list file.', 'err'); return; }
   if (!tiles.length) { mainMsg('Enter some letters first.', 'err'); return; }
 
-  let min = parseInt($('minLen').value, 10);
-  let max = parseInt($('maxLen').value, 10);
+  let min = S.minLen, max = S.maxLen;
   if (!(min >= 1)) min = 1;
-  if (!(max >= 1)) max = S.maxWord;
-  if (max > S.maxWord) max = S.maxWord;
-  if (min > max) { mainMsg('Shortest word (' + min + ') is longer than longest word (' + max + ').', 'err'); return; }
-  $('minLen').value = min; $('maxLen').value = max;
-  S.minLen = min; S.maxLen = max; saveS();
+  if (!(max >= 1) || max > S.maxWord) max = S.maxWord;
+  if (min > max) { mainMsg('Shortest word (' + min + ') is longer than longest word (' + max + '). Fix it in Settings.', 'err'); return; }
 
   // positioned tiles
   const posAt = new Int16Array(64).fill(-2);   // -2 free, -1 any letter (blank), 0..25 fixed letter
@@ -414,9 +504,36 @@ $('findBtn').onclick = () => {
 };
 
 // ---------- settings screen ----------
-$('gear').onclick = () => { $('mainView').hidden = true; $('settingsView').hidden = false;
-  $('maxWord').value = S.maxWord; $('maxBlanks').value = S.maxBlanks; setMsg(''); };
-$('doneBtn').onclick = () => { $('settingsView').hidden = true; $('mainView').hidden = false; renderTiles(); };
+function fillSettings() {
+  $('maxWord').value = S.maxWord;
+  $('maxBlanks').value = S.maxBlanks;
+  $('minLen').value = S.minLen;
+  $('maxLen').value = S.maxLen;
+  $('tileSize').value = S.tileSize;
+  $('themeSel').value = S.theme;
+}
+$('gear').onclick = () => {
+  $('mainView').hidden = true; $('settingsView').hidden = false;
+  fillSettings(); setMsg(''); window.scrollTo(0, 0);
+};
+$('doneBtn').onclick = () => {
+  $('settingsView').hidden = true; $('mainView').hidden = false;
+  refreshTiles();
+};
+
+function applyLens() {
+  let min = parseInt($('minLen').value, 10), max = parseInt($('maxLen').value, 10);
+  if (!(min >= 1)) min = 1;
+  if (!(max >= 1)) max = S.maxWord;
+  if (max > S.maxWord) max = S.maxWord;
+  if (min > S.maxWord) min = S.maxWord;
+  if (min > max) { setMsg('Shortest word (' + min + ') cannot be longer than longest word (' + max + '). Not saved.', 'err'); return; }
+  S.minLen = min; S.maxLen = max; saveS();
+  $('minLen').value = min; $('maxLen').value = max;
+  setMsg('Word lengths set to ' + min + ' to ' + max + '.', 'ok');
+}
+$('minLen').onchange = applyLens;
+$('maxLen').onchange = applyLens;
 
 $('maxWord').onchange = () => {
   let n = parseInt($('maxWord').value, 10);
@@ -446,6 +563,19 @@ $('maxBlanks').onchange = () => {
   setMsg('Max blanks set to ' + n + (removed ? ' (' + removed + ' blank tiles removed)' : '') + '.', 'ok');
 };
 
+// ---------- tile size ----------
+function applyScale() {
+  document.documentElement.style.setProperty('--ts', (1 + (S.tileSize - 10) * 0.05).toFixed(2));
+}
+$('tileSize').onchange = () => {
+  let n = parseInt($('tileSize').value, 10);
+  if (!(n >= 1)) n = 1;
+  if (n > 30) n = 30;
+  $('tileSize').value = n;
+  S.tileSize = n; saveS(); applyScale();
+  setMsg('Tile size ' + n + ' (' + Math.round(100 + (n - 10) * 5) + '% of standard).', 'ok');
+};
+
 // ---------- theme ----------
 function applyTheme(name) {
   document.documentElement.setAttribute('data-theme', name);
@@ -458,9 +588,9 @@ $('themeSel').onchange = () => {
 };
 
 // ---------- start ----------
-$('themeSel').value = S.theme;
 applyTheme(S.theme);
-loadLens();
+applyScale();
+fillSettings();
 renderTiles();
 refreshDicts().catch(err => { $('dictInfo').textContent = 'Storage problem: ' + err.message; });
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
