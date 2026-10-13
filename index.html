@@ -21,6 +21,8 @@
     --bad: #ff8a7a;
     --accent-ink: #0e1d22;
     --ts: 1;
+    --blankc: #e8590c;
+    --pairc: #1b8a3a;
   }
   [data-theme="midnight"] { --bg:#0f1226; --panel:#1a1f3d; --line:#2e3566; --text:#e8eaff; --muted:#9aa2d6;
     --tile:#e9e3ff; --tile-edge:#8d82c9; --tile-ink:#14163a; --accent:#8b7cff; --accent-ink:#0f1226; }
@@ -56,8 +58,11 @@
   .col { display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .tile { width: calc(44px * var(--ts)); height: calc(48px * var(--ts)); padding: 0; border-radius: 6px; border: none;
     background: var(--tile); color: var(--tile-ink); font-size: calc(26px * var(--ts)); font-weight: 700;
-    box-shadow: 0 3px 0 var(--tile-edge); }
-  .tile.blank { background: #dfe7ea; box-shadow: 0 3px 0 #8fa3ad; color: #51666f; }
+    box-shadow: 0 3px 0 var(--tile-edge);
+    user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+  .tile.blank { background: #dfe7ea; box-shadow: 0 3px 0 #8fa3ad; color: var(--blankc); }
+  .tile.pair { background: var(--pairc); color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  .tile.pend { outline: 3px solid var(--accent); outline-offset: 2px; }
   .pos { width: calc(44px * var(--ts)) !important; padding: 6px 2px !important; text-align: center;
     font-size: calc(15px * var(--ts)); }
   .caret { display: none; width: 3px; height: calc(48px * var(--ts)); background: var(--accent);
@@ -82,11 +87,14 @@
   .words { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 12px 12px; }
   .words span { background: var(--tile); color: var(--tile-ink); border-radius: 5px; padding: 4px 8px;
     font-weight: 600; font-size: 15px; letter-spacing: .5px; }
+  .words b { font-weight: 800; }
+  .words b.bl { color: var(--blankc); }
+  .words b.pr { color: var(--pairc); }
 
   .field { margin-bottom: 14px; }
   .field label.t { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-  .pair { display: flex; gap: 10px; }
-  .pair .field { flex: 1; }
+  .pair2 { display: flex; gap: 10px; }
+  .pair2 .field { flex: 1; }
   .btnrow { display: flex; gap: 8px; margin-bottom: 8px; }
   .btnrow > * { flex: 1; text-align: center; }
   label.filebtn { background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
@@ -108,7 +116,7 @@
 
 <main id="mainView">
   <div id="bar">
-    <input id="ghost" type="text" autocapitalize="characters" autocomplete="off"
+    <input id="ghost" type="text" autofocus autocapitalize="characters" autocomplete="off"
            autocorrect="off" spellcheck="false" aria-label="Letters">
     <div id="tiles"></div>
   </div>
@@ -133,7 +141,7 @@
   <input id="fileIn" type="file" hidden>
   <div class="help">Load a word list .txt file from your phone (one word per line). It is stored inside the app on this phone. Loading a file with the same name replaces that dictionary.</div>
 
-  <div class="pair">
+  <div class="pair2">
     <div class="field">
       <label class="t" for="minLen">Shortest word</label>
       <input id="minLen" type="number" inputmode="numeric" min="1">
@@ -144,7 +152,7 @@
     </div>
   </div>
 
-  <div class="pair">
+  <div class="pair2">
     <div class="field">
       <label class="t" for="maxWord">Max word size (and max tiles)</label>
       <input id="maxWord" type="number" inputmode="numeric" min="2" max="30">
@@ -158,6 +166,27 @@
   <div class="field">
     <label class="t" for="tileSize">Tile size (10 = standard, each step is 5% bigger or smaller)</label>
     <input id="tileSize" type="number" inputmode="numeric" min="1" max="30">
+  </div>
+
+  <div class="pair2">
+    <div class="field">
+      <label class="t" for="blankSel">Blank letter color</label>
+      <select id="blankSel">
+        <option value="orange">Orange</option>
+        <option value="red">Red</option>
+        <option value="magenta">Magenta</option>
+        <option value="blue">Blue</option>
+      </select>
+    </div>
+    <div class="field">
+      <label class="t" for="pairSel">Pair color</label>
+      <select id="pairSel">
+        <option value="green">Green</option>
+        <option value="blue">Blue</option>
+        <option value="purple">Purple</option>
+        <option value="teal">Teal</option>
+      </select>
+    </div>
   </div>
 
   <div class="field">
@@ -176,9 +205,11 @@
 
   <div class="help">
     <b>How to use</b><br>
-    Tap the letters bar and type your letters. Use the space bar for a blank. Backspace removes letters.
-    Tap a tile to put the cursor after it, so you can fix or add letters in the middle.
-    The number under a tile fixes that letter to that position in the word (1 = first letter). Leave it empty to let the letter go anywhere.
+    Tap the letters bar and type your letters. The space bar adds a blank. Backspace removes letters.
+    Tap a tile to delete it.<br>
+    The number under a tile fixes that letter to that position in the word (1 = first letter). Leave it empty to let the letter go anywhere.<br>
+    <b>Pairs:</b> press and hold a tile until it is outlined, then tap the tile right next to it. Only words containing those two letters together, in that order, are shown. Press and hold a paired tile to remove the pair.<br>
+    In the results, letters that come from a blank use the blank color, and paired letters use the pair color.
     The Enter key runs the search.
   </div>
 </section>
@@ -186,16 +217,23 @@
 <script>
 const $ = id => document.getElementById(id);
 
+const BLANK_COLORS = { orange: '#e8590c', red: '#d62828', magenta: '#c2185b', blue: '#1565c0' };
+const PAIR_COLORS = { green: '#1b8a3a', blue: '#1565c0', purple: '#6a1b9a', teal: '#00796b' };
+
 // ---------- saved settings ----------
 let S = {};
 try { S = JSON.parse(localStorage.getItem('ws') || '{}'); } catch (e) { S = {}; }
-S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15, theme: 'slate', tileSize: 10 }, S);
+S = Object.assign({ dict: '', maxWord: 15, maxBlanks: 2, minLen: 2, maxLen: 15, theme: 'slate',
+  tileSize: 10, blankColor: 'orange', pairColor: 'green' }, S);
 function saveS() { localStorage.setItem('ws', JSON.stringify(S)); }
 
-let tiles = [];      // each: { l: 'A'..'Z' or '?', p: 0 or position number }
+let tiles = [];      // each: { l: 'A'..'Z' or '?', p: 0 or position number, g: pair id (optional) }
 let caret = 0;       // cursor position among the tiles
+let pending = -1;    // tile index waiting for its pair partner
+let nextG = 1;       // next pair id
 let words = [];      // words of the active dictionary
 let dictName = '';
+let R = null;        // details of the last search (used to color the results)
 
 // ---------- status messages ----------
 function say(el, text, cls) { el.textContent = text; el.className = cls || ''; }
@@ -314,9 +352,23 @@ $('delBtn').onclick = async () => {
 const inp = $('ghost');
 const bar = $('bar');
 let caretEl = null;
+let kbOpen = false;      // true once we opened the keypad from a tap
+let lpFired = false;     // a long press just happened, so ignore the click that follows
+let lpTimer = null;
 
 function blankCount() { return tiles.filter(t => t.l === '?').length; }
 function syncInput() { inp.value = tiles.map(t => t.l).join(''); }
+
+// a pair stays only while its two tiles are still next to each other
+function cleanPairs() {
+  const seen = {};
+  tiles.forEach((t, i) => { if (t.g) (seen[t.g] = seen[t.g] || []).push(i); });
+  for (const g in seen) {
+    const a = seen[g];
+    const ok = a.length === 2 && a[1] === a[0] + 1 && tiles[a[0]].l !== '?' && tiles[a[1]].l !== '?';
+    if (!ok) a.forEach(i => { delete tiles[i].g; });
+  }
+}
 
 function placeCaret() {
   if (!caretEl) return;
@@ -328,6 +380,7 @@ function placeCaret() {
 }
 
 function renderTiles() {
+  cleanPairs();
   const el = $('tiles');
   el.innerHTML = '';
   caretEl = document.createElement('span');
@@ -336,10 +389,21 @@ function renderTiles() {
     const col = document.createElement('div');
     col.className = 'col';
     const b = document.createElement('button');
-    b.className = 'tile' + (t.l === '?' ? ' blank' : '');
+    b.className = 'tile' + (t.l === '?' ? ' blank' : '') + (t.g ? ' pair' : '') + (i === pending ? ' pend' : '');
     b.textContent = t.l;
     b.dataset.i = i;
     b.setAttribute('aria-label', 'Tile ' + t.l);
+    b.addEventListener('pointerdown', () => {
+      lpFired = false;
+      clearTimeout(lpTimer);
+      lpTimer = setTimeout(() => {
+        lpFired = true;
+        if (navigator.vibrate) navigator.vibrate(30);
+        onLong(i);
+      }, 450);
+    });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => b.addEventListener(n, () => clearTimeout(lpTimer)));
+    b.addEventListener('contextmenu', ev => ev.preventDefault());
     const p = document.createElement('input');
     p.type = 'number'; p.inputMode = 'numeric'; p.min = 1; p.max = S.maxWord;
     p.className = 'pos'; p.placeholder = '-';
@@ -359,24 +423,83 @@ function renderTiles() {
 }
 
 function refreshTiles() {
+  pending = -1;
   syncInput();
   if (caret > tiles.length) caret = tiles.length;
   renderTiles();
 }
 
+// open the keypad with the cursor after tile n
 function focusAt(n) {
+  if (document.activeElement === inp && !kbOpen) inp.blur();
   inp.focus();
+  kbOpen = true;
   setTimeout(() => { try { inp.setSelectionRange(n, n); } catch (e) {} caret = n; placeCaret(); }, 0);
 }
 
+// ---------- tapping and holding tiles ----------
+function makePair(a, b) {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  if (hi - lo !== 1) {
+    mainMsg('Pairs must be next to each other. Tap the tile right beside ' + tiles[a].l + ', or tap ' + tiles[a].l + ' again to cancel.', 'err');
+    return;
+  }
+  if (tiles[lo].l === '?' || tiles[hi].l === '?') { pending = -1; renderTiles(); mainMsg('A blank tile cannot be part of a pair.', 'err'); return; }
+  if (tiles[lo].g || tiles[hi].g) { pending = -1; renderTiles(); mainMsg('One of those tiles is already in a pair. Press and hold it to remove that pair first.', 'err'); return; }
+  tiles[lo].g = tiles[hi].g = nextG++;
+  pending = -1;
+  renderTiles();
+  mainMsg('Pair ' + tiles[lo].l + tiles[hi].l + ' set. Only words containing ' + tiles[lo].l + tiles[hi].l + ' together will show.', 'ok');
+}
+
+function onLong(i) {
+  const t = tiles[i];
+  if (!t) return;
+  if (t.g) {
+    const g = t.g;
+    tiles.forEach(x => { if (x.g === g) delete x.g; });
+    pending = -1; renderTiles();
+    mainMsg('Pair removed.', 'ok');
+    return;
+  }
+  if (t.l === '?') { mainMsg('A blank tile cannot be part of a pair.', 'err'); return; }
+  if (pending >= 0 && pending !== i) { makePair(pending, i); return; }
+  pending = i; renderTiles();
+  mainMsg('Now tap the tile next to ' + t.l + ' to pair them (tap ' + t.l + ' again to cancel).', 'ok');
+}
+
+function tileTap(i) {
+  if (pending >= 0) {
+    if (i === pending) { pending = -1; renderTiles(); mainMsg('Pair selection cancelled.', 'ok'); return; }
+    makePair(pending, i);
+    return;
+  }
+  tiles.splice(i, 1);
+  caret = i;
+  refreshTiles();
+  if ($('status').className === 'err') mainMsg('');
+  focusAt(i);
+}
+
+bar.addEventListener('mousedown', e => { if (e.target.closest('.tile')) e.preventDefault(); });
+bar.addEventListener('pointerdown', () => { lpFired = false; }, true);
 bar.addEventListener('click', e => {
   if (e.target.closest('.pos')) return;
+  if (lpFired) { lpFired = false; return; }
   const t = e.target.closest('.tile');
-  if (t) focusAt(parseInt(t.dataset.i, 10) + 1);
+  if (t) tileTap(parseInt(t.dataset.i, 10));
   else focusAt(tiles.length);
 });
+
+// a tap on empty space anywhere on the main screen also opens the keypad
+document.addEventListener('click', e => {
+  if ($('mainView').hidden) return;
+  if (e.target.closest('button, input, select, label, summary, #results, #bar')) return;
+  focusAt(tiles.length);
+});
+
 inp.addEventListener('focus', () => bar.classList.add('focus'));
-inp.addEventListener('blur', () => bar.classList.remove('focus'));
+inp.addEventListener('blur', () => { bar.classList.remove('focus'); kbOpen = false; });
 document.addEventListener('selectionchange', () => {
   if (document.activeElement === inp) {
     caret = Math.min(inp.selectionStart || 0, tiles.length);
@@ -384,7 +507,7 @@ document.addEventListener('selectionchange', () => {
   }
 });
 
-// keep position numbers with their letters when letters are inserted or removed
+// keep position numbers and pairs with their letters when letters are inserted or removed
 function applyText(nu) {
   const old = tiles.map(t => t.l).join('');
   let k = 0;
@@ -399,6 +522,7 @@ function applyText(nu) {
 }
 
 inp.addEventListener('input', () => {
+  pending = -1;
   const raw = inp.value.toUpperCase();
   const pos = inp.selectionStart || 0;
   let out = '', blanks = 0, newCaret = 0, msg = '';
@@ -433,9 +557,58 @@ $('clrBtn').onclick = () => {
   refreshTiles();
   $('results').innerHTML = '';
   mainMsg('Tiles cleared.', 'ok');
+  focusAt(0);
 };
 
 // ---------- search ----------
+// where each pair sits in a word (null if the word does not contain the pair)
+function findPairs(word, P, posAt) {
+  const starts = [];
+  for (const pr of P) {
+    if (pr.rs >= 0) {
+      if (word.charCodeAt(pr.rs) - 65 !== pr.c1 || word.charCodeAt(pr.rs + 1) - 65 !== pr.c2) return null;
+      starts.push(pr.rs);
+    } else {
+      let k = word.indexOf(pr.s);
+      while (k >= 0 && (posAt[k] !== -2 || posAt[k + 1] !== -2)) k = word.indexOf(pr.s, k + 1);
+      if (k < 0) return null;
+      starts.push(k);
+    }
+  }
+  for (let a = 0; a < starts.length; a++)
+    for (let b = a + 1; b < starts.length; b++)
+      if (Math.abs(starts[a] - starts[b]) < 2) return null;
+  return starts;
+}
+
+// the word as html: letters made by blanks and paired letters get colors
+function wordHtml(word) {
+  const L = word.length;
+  const mark = new Uint8Array(L);          // 0 normal, 1 from a blank, 2 paired
+  for (let i = 0; i < L; i++) if (R.posAt[i] === -1) mark[i] = 1;
+  const st = R.P.length ? (findPairs(word, R.P, R.posAt) || []) : [];
+  for (const s of st) { mark[s] = 2; mark[s + 1] = 2; }
+  const tmp = Int8Array.from(R.counts);
+  for (let i = 0; i < L; i++) {
+    if (mark[i] === 2 && R.posAt[i] === -2) { const c = word.charCodeAt(i) - 65; if (tmp[c] > 0) tmp[c]--; }
+  }
+  for (let i = 0; i < L; i++) {
+    if (mark[i] === 0 && R.posAt[i] === -2) {
+      const c = word.charCodeAt(i) - 65;
+      if (tmp[c] > 0) tmp[c]--; else mark[i] = 1;
+    }
+  }
+  let html = '', i = 0;
+  while (i < L) {
+    let j = i;
+    while (j < L && mark[j] === mark[i]) j++;
+    const seg = word.slice(i, j);
+    html += mark[i] === 0 ? seg : '<b class="' + (mark[i] === 1 ? 'bl' : 'pr') + '">' + seg + '</b>';
+    i = j;
+  }
+  return html;
+}
+
 $('findBtn').onclick = () => {
   inp.blur();
   const out = $('results');
@@ -461,7 +634,28 @@ $('findBtn').onclick = () => {
     } else if (t.l === '?') freeBlanks++;
     else counts[t.l.charCodeAt(0) - 65]++;
   }
-  const effMin = Math.max(min, maxPos);
+
+  // pairs
+  const P = [];
+  for (let i = 0; i < tiles.length - 1; i++) {
+    const a = tiles[i], b = tiles[i + 1];
+    if (!(a.g && a.g === b.g)) continue;
+    const name = a.l + b.l;
+    let rs = -1;
+    if (a.p && b.p) {
+      if (b.p !== a.p + 1) { mainMsg('Pair ' + name + ': the position numbers must be next to each other (' + a.p + ' and ' + (a.p + 1) + ').', 'err'); return; }
+      rs = a.p - 1;
+    } else if (a.p) {
+      rs = a.p - 1;
+      if (posAt[a.p] !== -2) { mainMsg('Pair ' + name + ' clashes with another fixed tile at position ' + (a.p + 1) + '.', 'err'); return; }
+    } else if (b.p) {
+      rs = b.p - 2;
+      if (rs < 0) { mainMsg('Pair ' + name + ': ' + b.l + ' is fixed to position 1, so it cannot be second in the pair.', 'err'); return; }
+      if (posAt[rs] !== -2) { mainMsg('Pair ' + name + ' clashes with another fixed tile at position ' + (rs + 1) + '.', 'err'); return; }
+    }
+    P.push({ s: name, c1: a.l.charCodeAt(0) - 65, c2: b.l.charCodeAt(0) - 65, rs: rs });
+  }
+  const effMin = Math.max(min, maxPos, P.length ? 2 * P.length : 0);
 
   const t0 = performance.now();
   const tmp = new Int8Array(26);
@@ -484,6 +678,7 @@ $('findBtn').onclick = () => {
       if (tmp[c] > 0) tmp[c]--;
       else if (++b > freeBlanks) { ok = false; break; }
     }
+    if (ok && P.length && !findPairs(word, P, posAt)) ok = false;
     if (ok) {
       (buckets[L] || (buckets[L] = [])).push(word);
       total++;
@@ -491,16 +686,18 @@ $('findBtn').onclick = () => {
   }
   const ms = Math.round(performance.now() - t0);
 
+  R = { posAt: posAt, counts: counts, P: P };
   let html = '';
   for (let L = max; L >= min; L--) {
     const a = buckets[L];
     if (!a || !a.length) continue;
     html += '<details open><summary>' + L + ' letters <span>' + a.length + ' words</span></summary><div class="words">' +
-      a.map(x => '<span>' + x + '</span>').join('') + '</div></details>';
+      a.map(x => '<span>' + wordHtml(x) + '</span>').join('') + '</div></details>';
   }
   out.innerHTML = html;
-  if (total) mainMsg('Found ' + total.toLocaleString() + ' words of ' + min + ' to ' + max + ' letters in ' + ms + ' ms (' + dictName + ').', 'ok');
-  else mainMsg('No words found for ' + min + ' to ' + max + ' letters in ' + dictName + '.', 'err');
+  const pairNote = P.length ? ', pair' + (P.length > 1 ? 's ' : ' ') + P.map(x => x.s).join(' ') : '';
+  if (total) mainMsg('Found ' + total.toLocaleString() + ' words of ' + min + ' to ' + max + ' letters' + pairNote + ' in ' + ms + ' ms (' + dictName + ').', 'ok');
+  else mainMsg('No words found for ' + min + ' to ' + max + ' letters' + pairNote + ' in ' + dictName + '.', 'err');
 };
 
 // ---------- settings screen ----------
@@ -511,6 +708,8 @@ function fillSettings() {
   $('maxLen').value = S.maxLen;
   $('tileSize').value = S.tileSize;
   $('themeSel').value = S.theme;
+  $('blankSel').value = S.blankColor;
+  $('pairSel').value = S.pairColor;
 }
 $('gear').onclick = () => {
   $('mainView').hidden = true; $('settingsView').hidden = false;
@@ -519,6 +718,7 @@ $('gear').onclick = () => {
 $('doneBtn').onclick = () => {
   $('settingsView').hidden = true; $('mainView').hidden = false;
   refreshTiles();
+  focusAt(tiles.length);
 };
 
 function applyLens() {
@@ -576,7 +776,21 @@ $('tileSize').onchange = () => {
   setMsg('Tile size ' + n + ' (' + Math.round(100 + (n - 10) * 5) + '% of standard).', 'ok');
 };
 
-// ---------- theme ----------
+// ---------- colors and theme ----------
+function applyColors() {
+  const r = document.documentElement.style;
+  r.setProperty('--blankc', BLANK_COLORS[S.blankColor] || BLANK_COLORS.orange);
+  r.setProperty('--pairc', PAIR_COLORS[S.pairColor] || PAIR_COLORS.green);
+}
+$('blankSel').onchange = () => {
+  S.blankColor = $('blankSel').value; saveS(); applyColors();
+  setMsg('Blank letter color: ' + S.blankColor + '.', 'ok');
+};
+$('pairSel').onchange = () => {
+  S.pairColor = $('pairSel').value; saveS(); applyColors();
+  setMsg('Pair color: ' + S.pairColor + '.', 'ok');
+};
+
 function applyTheme(name) {
   document.documentElement.setAttribute('data-theme', name);
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
@@ -590,9 +804,15 @@ $('themeSel').onchange = () => {
 // ---------- start ----------
 applyTheme(S.theme);
 applyScale();
+applyColors();
 fillSettings();
 renderTiles();
 refreshDicts().catch(err => { $('dictInfo').textContent = 'Storage problem: ' + err.message; });
+// Android only opens the keypad after a tap, so this just prepares the bar; the first tap opens the keypad
+try { inp.focus(); } catch (e) {}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !$('mainView').hidden) { try { inp.focus(); } catch (e) {} }
+});
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
